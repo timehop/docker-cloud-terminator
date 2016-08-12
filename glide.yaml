@@ -1,0 +1,7 @@
+package: github.com/timehop/docker-cloud-terminator
+import:
+- package: github.com/aws/aws-sdk-go
+  subpackages:
+  - aws
+  - aws/session
+  - service/ec2

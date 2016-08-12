@@ -1,2 +1,2 @@
-# Ignore binary files
-terminator
+# Ignore builds
+bin/

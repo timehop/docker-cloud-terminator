@@ -77,7 +77,7 @@ func fetchNodesByState(state string) ([]Node, error) {
 	if err := dec.Decode(&nodes); err != nil {
 		return nil, err
 	}
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode >= 300 {
 		err := errors.New(http.StatusText(resp.StatusCode))
 		if nodes.Error != nil {
 			err = nodes.Error
@@ -109,7 +109,7 @@ func terminateDockerCloudNode(node Node) error {
 	if err := dec.Decode(&nodes); err != nil {
 		return err
 	}
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode >= 300 {
 		err := errors.New(http.StatusText(resp.StatusCode))
 		if nodes.Error != nil {
 			err = nodes.Error

@@ -16,9 +16,6 @@ ENV DOCKERCLOUD_AUTH please_set_me
 # invoked to discover unreachable nodes.
 ENV POLLING_INTERVAL 5s
 
-# A comma-separated list of cloud providers to be targeted for host termination. Defaults to 'aws'.
-ENV CLOUD_PROVIDERS aws
-
 # Before building this container run:
 # GOOS=linux GOARCH=amd64 go build -o terminator cmd/terminator/main.go
 ADD bin/terminator /usr/bin/terminator

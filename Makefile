@@ -6,22 +6,26 @@ endif
 ifneq ($(shell git diff --shortstat),)
 tag := $(tag)-dirty
 endif
-docker_username := $(shell docker info | grep Username | sed 's/Username: //')
 
-all: build.go build.docker
+all: build
 
-build.go:
+build: docker.build
+
+go.build:
 	GOOS=linux GOARCH=amd64 go build -o bin/terminator cmd/terminator/main.go
 
-build.docker:
-	docker build -t $(docker_username)/docker-cloud-terminator:$(tag) .
-	@echo Docker image: $(docker_username)/docker-cloud-terminator:$(tag)
+docker.build: go.build
+	docker build -t timehop/docker-cloud-terminator:$(tag) .
+	@echo Docker image: timehop/docker-cloud-terminator:$(tag)
 
-run:
+run: build
 	docker run --rm -it \
 		-e DOCKERCLOUD_AUTH="$(DOCKERCLOUD_AUTH)" \
 		-e POLLING_INTERVAL='1s' \
 		-e AWS_REGION='us-east-1' \
 		-e AWS_ACCESS_KEY_ID=$(AWS_ACCESS_KEY_ID) \
 		-e AWS_SECRET_ACCESS_KEY=$(AWS_SECRET_ACCESS_KEY) \
-		$(docker_username)/docker-cloud-terminator:$(tag)
+		timehop/docker-cloud-terminator:$(tag)
+
+docker.push:
+	docker push timehop/docker-cloud-terminator:$(tag)

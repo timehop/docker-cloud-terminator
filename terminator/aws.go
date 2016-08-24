@@ -28,10 +28,8 @@ type awsEC2 struct {
 
 func (t *awsEC2) newEC2Service() (*ec2.EC2, error) {
 	creds := credentials.NewCredentials(t.config)
-	aws.NewConfig().WithRegion(t.config.AWSRegion).WithCredentials(creds)
-	sess, err := session.NewSession(&aws.Config{
-		MaxRetries: aws.Int(3),
-	})
+	config := aws.NewConfig().WithRegion(t.config.AWSRegion).WithCredentials(creds).WithMaxRetries(3)
+	sess, err := session.NewSession(config)
 	if err != nil {
 		return nil, err
 	}

@@ -1,4 +1,4 @@
-Does the following:
+ Does the following:
 
 1. Polls DC for 'Unreachable' nodes and terminates those nodes on EC2.
 2. Polls EC2 for states 'terminated' or 'shutting-down' and which have Docker-Cloud-UUID tags and terminates those nodes on Docker Cloud.

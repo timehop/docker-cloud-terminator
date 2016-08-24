@@ -8,7 +8,7 @@ RUN apk --update add ca-certificates
 # for you by Docker Cloud. Elsewhere you must override it yourself. From the
 # docs: All requests should be sent to https://cloud.docker.com/ endpoint
 # using basic authentication using your API key as password. Example usage:
-# $ export DOCKERCLOUD_AUTH="Basic $(echo -n "<username>:<api_key>" | base64)'"
+# $ export DOCKERCLOUD_AUTH="Basic $(echo -n "<username>:<api_key>" | base64)"
 # $ curl -v -H "Authorization: $DOCKERCLOUD_AUTH" -H "Accept: application/json" https://cloud.docker.com/api/app/v1/service/
 ENV DOCKERCLOUD_AUTH please_set_me
 

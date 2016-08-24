@@ -26,3 +26,8 @@ func logger(level string, params args) {
 		os.Exit(1)
 	}
 }
+
+// Log prints the args as a single value to a "message" key
+func Log(level string, args ...interface{}) {
+	logger(level, args{"message": fmt.Sprintln(args)})
+}

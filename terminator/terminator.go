@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -51,28 +52,35 @@ func (config *Config) Validate() error {
 	return nil
 }
 
-func Start(config *Config) {
-	if err := config.Validate(); err != nil {
-		logger("FATAL", args{"error": err})
+type Terminator struct {
+	config *Config
+
+	mu              sync.Mutex
+	terminatedNodes map[string]bool
+	terminatedEC2   map[string]bool
+}
+
+func New(config *Config) *Terminator {
+	return &Terminator{config: config}
+}
+
+func (t *Terminator) Start() error {
+	if err := t.config.Validate(); err != nil {
+		return err
 	}
-
-	unreachableDockerCloudUUIDsCh := make(chan string)
-	dockerCloudUUIDsToTerminateCh := make(chan string)
-	errors := make(chan error)
-
-	dc := &dockerCloud{config: config}
-	go dc.monitorUnreachableNodes(unreachableDockerCloudUUIDsCh, errors)
-	go dc.terminateNodes(dockerCloudUUIDsToTerminateCh, errors)
-
-	ec2 := &awsEC2{config: config}
-	go ec2.monitorTerminatedInstances(dockerCloudUUIDsToTerminateCh, errors)
-	go ec2.terminateInstances(unreachableDockerCloudUUIDsCh, errors)
-
-	for err := range errors {
-		if e, ok := err.(Error); ok {
-			logger("ERROR", e.args)
-		} else {
-			logger("ERROR", args{"error": err})
-		}
-	}
+	var wg sync.WaitGroup
+	wg.Add(3)
+	go func() {
+		t.monitorUnreachableDockerCloudNodes()
+		wg.Done()
+	})
+	go func() {
+		t.monitorTerminatedDockerCloudNodes()
+		wg.Done()
+	})
+	go func() {
+		t.monitorTerminatedEC2Instances()
+		wg.Done()
+	})
+	wg.Wait() // Actually never returns but shrug
 }

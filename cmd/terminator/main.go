@@ -9,5 +9,9 @@ import (
 func main() {
 	// Be kind to devs and include line numbers with each log logsput.
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	terminator.Start(terminator.ConfigFromEnv())
+	config := terminator.ConfigFromEnv()
+	err := terminator.New(config).Start()
+	if err != nil {
+		terminator.Log("FATAL", err)
+	}
 }

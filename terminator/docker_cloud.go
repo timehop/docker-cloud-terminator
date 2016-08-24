@@ -66,53 +66,100 @@ type Node struct {
 	PrivateIPS           []PrivateIP `json:"private_ips"`
 }
 
-type dockerCloud struct {
-	config *Config
-}
-
-func (t *dockerCloud) monitorUnreachableNodes(unreachableDockerCloudUUIDsCh chan<- string, errs chan<- error) {
+func (t *Terminator) monitorUnreachableDockerCloudNodes() {
 	for range time.Tick(t.config.PollingInterval) {
-		logger("INFO", args{"message": "Polling for unreachable Docker Cloud nodes"})
+		logger("INFO", args{"message": "Polling unreachable Docker Cloud nodes"})
 		nodes, err := t.fetchNodesByState("Unreachable")
 		if err != nil {
-			errs <- err
+			logger("ERROR", args{"error": err})
 		} else {
 			for _, node := range nodes {
-				unreachableDockerCloudUUIDsCh <- *node.UUID
+				t.terminateDockerCloudNode(*node.UUID)
 			}
 		}
 	}
 }
 
-func (t *dockerCloud) terminateNodes(dockerCloudUUIDsToTerminateCh <-chan string, errs chan<- error) {
-	for uuid := range dockerCloudUUIDsToTerminateCh {
-		logger("INFO", args{"message": "Terminating Docker Cloud node", "uuid": uuid})
-		err := t.terminateNode(uuid)
+func (t *Terminator) monitorTerminatedDockerCloudNodes() {
+	for range time.Tick(t.config.PollingInterval) {
+		logger("INFO", args{"message": "Polling terminated Docker Cloud nodes"})
+		nodes, err := t.fetchNodesByState("Terminated")
 		if err != nil {
-			errs <- err
+			logger("ERROR", args{"error": err})
+		} else {
+			for _, node := range nodes {
+				t.terminateEC2Instance(*node.UUID)
+			}
 		}
 	}
 }
 
-func (t *dockerCloud) fetchNodesByState(state string) ([]Node, error) {
-	getNodeURL := fmt.Sprintf("https://cloud.docker.com/api/infra/v1/node/?state=%s", state)
-	req, err := http.NewRequest("GET", getNodeURL, nil)
+func (t *Terminator) terminateDockerCloudNode(uuid string) {
+	// We may get delayed instructions to terminate previously terminated nodes.
+	if t.terminatedNodes[uuid] {
+		return
+	}
+
+	logger("INFO", args{"uuid": uuid, "message": "Terminating Docker Cloud node"})
+
+	deleteNodeURL := fmt.Sprintf("https://cloud.docker.com/api/infra/v1/node/%s/", uuid)
+	req, err := http.NewRequest("DELETE", deleteNodeURL, nil)
 	if err != nil {
-		return nil, Error{args{"message": "Could not construct Docker Cloud node request", "request": "GET " + getNodeURL, "error": err}}
+		logger("ERROR", args{"uuid": uuid, "error": err})
+		return
 	}
 	req.Header.Set("Authorization", t.config.DockerCloudAuth)
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, Error{args{"message": "Could not do Docker Cloud node request", "request": "GET " + getNodeURL, "error": err}}
+		logger("ERROR", args{"uuid": uuid, "error": err})
+		return
 	}
 	defer resp.Body.Close()
 
 	dec := json.NewDecoder(resp.Body)
 	var nodes NodesResponse
 	if err := dec.Decode(&nodes); err != nil {
-		return nil, Error{args{"message": "Could not decode Docker Cloud node request", "request": "GET " + getNodeURL, "error": err}}
+		logger("ERROR", args{"uuid": uuid, "error": err})
+		return
+	}
+
+	// Only attempt these requests once per UUID.
+	t.mu.Lock()
+	t.terminatedNodes[uuid] = true
+	t.mu.Unlock()
+
+	if resp.StatusCode != http.StatusAccepted {
+		err := errors.New(http.StatusText(resp.StatusCode))
+		if nodes.Error != nil {
+			err = nodes.Error
+		}
+		logger("ERROR", args{"uuid": uuid, "error": err})
+		return
+	}
+
+}
+
+func (t *dockerCloud) fetchNodesByState(state string) ([]Node, error) {
+	getNodeURL := fmt.Sprintf("https://cloud.docker.com/api/infra/v1/node/?state=%s", state)
+	req, err := http.NewRequest("GET", getNodeURL, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", t.config.DockerCloudAuth)
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	dec := json.NewDecoder(resp.Body)
+	var nodes NodesResponse
+	if err := dec.Decode(&nodes); err != nil {
+		return err
 	}
 
 	if resp.StatusCode != http.StatusOK {
@@ -120,42 +167,8 @@ func (t *dockerCloud) fetchNodesByState(state string) ([]Node, error) {
 		if nodes.Error != nil {
 			err = nodes.Error
 		}
-		return nil, Error{args{"message": "Unexpected Docker Cloud node response", "request": "GET " + getNodeURL, "error": err}}
+		return err
 	}
 
 	return nodes.Objects, nil
-}
-
-func (t *dockerCloud) terminateNode(uuid string) error {
-	deleteNodeURL := fmt.Sprintf("https://cloud.docker.com/api/infra/v1/node/%s/", uuid)
-	req, err := http.NewRequest("DELETE", deleteNodeURL, nil)
-	if err != nil {
-		return Error{args{"uuid": uuid, "message": "Could not construct Docker Cloud node request", "request": "DELETE " + deleteNodeURL, "error": err}}
-	}
-	req.Header.Set("Authorization", t.config.DockerCloudAuth)
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return Error{args{"uuid": uuid, "message": "Could not do Docker Cloud node request", "request": "DELETE " + deleteNodeURL, "error": err}}
-	}
-	defer resp.Body.Close()
-
-	dec := json.NewDecoder(resp.Body)
-	var nodes NodesResponse
-	if err := dec.Decode(&nodes); err != nil {
-		return Error{args{"message": "Could not decode Docker Cloud node request", "request": "DELETE " + deleteNodeURL, "error": err}}
-	}
-
-	// TODO: Do not return errors if we have already terminated this node before, which can
-	// happen if an EC2 instances reports a terminated state for a while.
-	if resp.StatusCode != http.StatusAccepted {
-		err := errors.New(http.StatusText(resp.StatusCode))
-		if nodes.Error != nil {
-			err = nodes.Error
-		}
-		return Error{args{"message": "Unexpected Docker Cloud node response", "request": "DELETE " + deleteNodeURL, "error": err}}
-	}
-
-	return nil
 }

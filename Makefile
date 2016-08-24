@@ -16,7 +16,12 @@ go.build:
 
 docker.build: go.build
 	docker build -t timehop/docker-cloud-terminator:$(tag) .
+	docker tag timehop/docker-cloud-terminator:$(tag) timehop/docker-cloud-terminator:latest
 	@echo Docker image: timehop/docker-cloud-terminator:$(tag)
+
+docker.push:
+	docker push timehop/docker-cloud-terminator:$(tag)
+	docker push timehop/docker-cloud-terminator:latest
 
 run: build
 	docker run --rm -it \
@@ -26,6 +31,3 @@ run: build
 		-e AWS_ACCESS_KEY_ID=$(AWS_ACCESS_KEY_ID) \
 		-e AWS_SECRET_ACCESS_KEY=$(AWS_SECRET_ACCESS_KEY) \
 		timehop/docker-cloud-terminator:$(tag)
-
-docker.push:
-	docker push timehop/docker-cloud-terminator:$(tag)

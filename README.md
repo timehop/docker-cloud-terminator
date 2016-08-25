@@ -10,6 +10,10 @@ In other words, when a node become "Unreachable", this service terminates both i
 
 The "Deploy to Cloud" button above may be used to quickly get up and running. Refer to the comments in `docker-cloud.yml` for configuration details.
 
+## Prerequisites
+
+This service expects EC2 instances to be tagged with `Docker-Cloud-UUID`. To deploy BYOH nodes with this tag, we use [docker-cloud-startup](https://github.com/timehop/docker-cloud-startup).
+
 ## Why
 
 When using BYOH nodes, Docker Cloud has no system for inspecting and terminating nodes that become "Unreachable". This is a solution for that problem.

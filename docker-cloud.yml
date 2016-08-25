@@ -7,7 +7,7 @@ docker-cloud-terminator:
   target_num_containers: 2
   deployment_strategy: high_availability
   environment:
-    # AWS credentials must have ec2:DescribeInstances and ec2:TerminateInstances privileges
+    # AWS credentials must have ec2:DescribeInstances, ec2:DescribeTags, and ec2:TerminateInstances privileges
     - AWS_ACCESS_KEY_ID=<*******>
     - AWS_SECRET_ACCESS_KEY=<*******>
     - AWS_REGION=us-east-1

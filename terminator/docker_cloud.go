@@ -68,7 +68,6 @@ type Node struct {
 
 func (t *Terminator) monitorUnreachableDockerCloudNodes() {
 	for range time.Tick(t.config.PollingInterval) {
-		logger("INFO", args{"message": "Polling unreachable Docker Cloud nodes"})
 		nodes, err := t.fetchNodesByState("Unreachable")
 		if err != nil {
 			logger("ERROR", args{"error": err})
@@ -82,12 +81,14 @@ func (t *Terminator) monitorUnreachableDockerCloudNodes() {
 
 func (t *Terminator) monitorTerminatedDockerCloudNodes() {
 	for range time.Tick(t.config.PollingInterval) {
-		logger("INFO", args{"message": "Polling terminated Docker Cloud nodes"})
 		nodes, err := t.fetchNodesByState("Terminated")
 		if err != nil {
 			logger("ERROR", args{"error": err})
 		} else {
 			for _, node := range nodes {
+				// These UUIDs can be safely ignored for termination by us
+				t.markDockerCloudNodeAsTerminated(*node.UUID)
+
 				t.terminateEC2Instance(*node.UUID)
 			}
 		}
@@ -126,9 +127,7 @@ func (t *Terminator) terminateDockerCloudNode(uuid string) {
 	}
 
 	// Only attempt these requests once per UUID.
-	t.mu.Lock()
-	t.terminatedNodes[uuid] = true
-	t.mu.Unlock()
+	t.markDockerCloudNodeAsTerminated(uuid)
 
 	if resp.StatusCode != http.StatusAccepted {
 		err := errors.New(http.StatusText(resp.StatusCode))
@@ -141,25 +140,25 @@ func (t *Terminator) terminateDockerCloudNode(uuid string) {
 
 }
 
-func (t *dockerCloud) fetchNodesByState(state string) ([]Node, error) {
+func (t *Terminator) fetchNodesByState(state string) ([]Node, error) {
 	getNodeURL := fmt.Sprintf("https://cloud.docker.com/api/infra/v1/node/?state=%s", state)
 	req, err := http.NewRequest("GET", getNodeURL, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	req.Header.Set("Authorization", t.config.DockerCloudAuth)
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	dec := json.NewDecoder(resp.Body)
 	var nodes NodesResponse
 	if err := dec.Decode(&nodes); err != nil {
-		return err
+		return nil, err
 	}
 
 	if resp.StatusCode != http.StatusOK {
@@ -167,7 +166,7 @@ func (t *dockerCloud) fetchNodesByState(state string) ([]Node, error) {
 		if nodes.Error != nil {
 			err = nodes.Error
 		}
-		return err
+		return nil, err
 	}
 
 	return nodes.Objects, nil

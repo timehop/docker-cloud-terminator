@@ -57,30 +57,41 @@ type Terminator struct {
 
 	mu              sync.Mutex
 	terminatedNodes map[string]bool
-	terminatedEC2   map[string]bool
+	terminatedEC2s  map[string]bool
 }
 
 func New(config *Config) *Terminator {
-	return &Terminator{config: config}
+	return &Terminator{
+		config:          config,
+		terminatedNodes: map[string]bool{},
+		terminatedEC2s:  map[string]bool{},
+	}
 }
 
 func (t *Terminator) Start() error {
 	if err := t.config.Validate(); err != nil {
 		return err
 	}
-	var wg sync.WaitGroup
-	wg.Add(3)
-	go func() {
-		t.monitorUnreachableDockerCloudNodes()
-		wg.Done()
-	})
-	go func() {
-		t.monitorTerminatedDockerCloudNodes()
-		wg.Done()
-	})
-	go func() {
-		t.monitorTerminatedEC2Instances()
-		wg.Done()
-	})
-	wg.Wait() // Actually never returns but shrug
+
+	go t.monitorUnreachableDockerCloudNodes()
+	go t.monitorTerminatedDockerCloudNodes()
+	go t.monitorTerminatedEC2Instances()
+
+	for range time.Tick(t.config.PollingInterval) {
+		logger("INFO", args{"message": "Polling for termination candidates"})
+	}
+
+	return nil
+}
+
+func (t *Terminator) markDockerCloudNodeAsTerminated(uuid string) {
+	t.mu.Lock()
+	t.terminatedNodes[uuid] = true
+	t.mu.Unlock()
+}
+
+func (t *Terminator) markEC2InstanceAsTerminated(uuid string) {
+	t.mu.Lock()
+	t.terminatedEC2s[uuid] = true
+	t.mu.Unlock()
 }

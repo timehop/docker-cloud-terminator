@@ -39,8 +39,6 @@ func (t *Terminator) monitorTerminatedEC2Instances() {
 		return
 	}
 	for range time.Tick(t.config.PollingInterval) {
-		logger("INFO", args{"message": "Polling terminated EC2 instances"})
-
 		params := &ec2.DescribeInstancesInput{
 			Filters: []*ec2.Filter{
 				{
@@ -73,7 +71,7 @@ func (t *Terminator) monitorTerminatedEC2Instances() {
 
 func (t *Terminator) terminateEC2Instance(uuid string) {
 	// We may get delayed instructions to terminate previously terminated instances.
-	if t.terminatedEC2[uuid] {
+	if t.terminatedEC2s[uuid] {
 		return
 	}
 
@@ -83,7 +81,7 @@ func (t *Terminator) terminateEC2Instance(uuid string) {
 		return
 	}
 
-	logger("INFO", args{"uuid", uuid, "message": "Terminating EC2 instance"})
+	logger("INFO", args{"uuid": uuid, "message": "Terminating EC2 instance"})
 
 	var instanceIDs []*string
 	{ // Brackets just for scoping vars
@@ -106,6 +104,14 @@ func (t *Terminator) terminateEC2Instance(uuid string) {
 			instanceIDs = append(instanceIDs, tag.ResourceId)
 		}
 	}
+
+	if len(instanceIDs) == 0 {
+		t.markEC2InstanceAsTerminated(uuid)
+
+		logger("INFO", args{"uuid": uuid, "message": "No EC2 instance found"})
+		return
+	}
+
 	{ // Brackets just for scoping vars
 		params := &ec2.TerminateInstancesInput{
 			InstanceIds: instanceIDs,
@@ -120,7 +126,5 @@ func (t *Terminator) terminateEC2Instance(uuid string) {
 	}
 
 	// Only need to attempt these requests once per UUID.
-	t.mu.Lock()
-	t.terminatedEC2[uuid] = true
-	t.mu.Unlock()
+	t.markEC2InstanceAsTerminated(uuid)
 }

@@ -26,7 +26,7 @@ docker.push:
 run: build
 	docker run --rm -it \
 		-e DOCKERCLOUD_AUTH="$(DOCKERCLOUD_AUTH)" \
-		-e POLLING_INTERVAL='1s' \
+		-e POLLING_INTERVAL='3s' \
 		-e AWS_REGION='us-east-1' \
 		-e AWS_ACCESS_KEY_ID=$(AWS_ACCESS_KEY_ID) \
 		-e AWS_SECRET_ACCESS_KEY=$(AWS_SECRET_ACCESS_KEY) \

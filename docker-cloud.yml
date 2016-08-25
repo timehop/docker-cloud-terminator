@@ -1,0 +1,36 @@
+docker-cloud-terminator:
+  image: 'timehop/docker-cloud-terminator:latest'
+  environment:
+    # Your Docker Cloud username and api key belonging to the account where nodes will be deployed.
+    - DOCKER_USER=<your_docker_username>
+    - API_KEY=<your_docker_cloud_api_key>
+    # AWS credentials must have CloudFormation create-stack privs and s3 write privs to $S3_BUCKET
+    - AWS_ACCESS_KEY_ID=<*******>
+    - AWS_SECRET_ACCESS_KEY=<*******>
+    - AWS_REGION=us-east-1
+    # Writes to: s3://$S3_BUCKET/docker-cloud-startup/${CLOUDFORMATION_STACK_PREFIX}-${UUID}/script.sh.
+    - S3_BUCKET=<write_accessible>
+    # Actual stack name will be suffixed with a UUID
+    - CLOUDFORMATION_STACK_PREFIX=docker-cloud-byoh
+    # Defaults to Ubuntu Server 14.04 LTS (HVM), SSD Volume Type - ami-2d39803a, if left unset.
+    - AMI_ID=ami-2d39803a
+    # Defaults to m3.medium (smallest non-EC2 classic instance) if left unset.
+    - INSTANCE_TYPE=m3.medium
+    # Defaults to 1
+    - DESIRED_CAPACITY=1
+    # Defaults to expose 6783/tcp, 6783/udp, and 2375/tcp
+    - SECURITY_GROUPS=
+    # Conditional VPC id. If $SECURITY_GROUPS is empty and $SUBNETS is not empty, this must be specified.
+    - VPC_ID=
+    # Conditional subnets list. If $AVAILABILITY_ZONES is empty, this must be specified.
+    - SUBNETS=
+    # Conditional az list. If $SUBNETS is empty, this must be specified.
+    - AVAILABILITY_ZONES=us-east1b,us-east1c,us-east1d
+    # Defaaults to an IAM role with ec2 tagging capability.
+    - IAM_ROLE=
+    # Optional.
+    - KEYPAIR_NAME=
+    # Optional ec2 tags. Uses AWS syntax: 'Key=Foo,Value=Bar Key=Biz,Value=Baz'
+    - TAGS=
+    # Defaults to 2m if left unset. Use the following syntax: 1s, 1m, 1h, etc.
+    - DEPLOYMENT_TIMEOUT=2m

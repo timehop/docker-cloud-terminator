@@ -103,7 +103,11 @@ func (t *Terminator) terminateDockerCloudNode(uuid string) {
 
 	logger("INFO", args{"uuid": uuid, "message": "Terminating Docker Cloud node"})
 
-	deleteNodeURL := fmt.Sprintf("https://cloud.docker.com/api/infra/v1/node/%s/", uuid)
+	namespacePath := ""
+	if t.config.DockerCloudNamespace != "" {
+		namespacePath = t.config.DockerCloudNamespace + "/"
+	}
+	deleteNodeURL := fmt.Sprintf("https://cloud.docker.com/api/infra/v1/%snode/%s/", namespacePath, uuid)
 	req, err := http.NewRequest("DELETE", deleteNodeURL, nil)
 	if err != nil {
 		logger("ERROR", args{"uuid": uuid, "error": err})
@@ -141,7 +145,11 @@ func (t *Terminator) terminateDockerCloudNode(uuid string) {
 }
 
 func (t *Terminator) fetchNodesByState(state string) ([]Node, error) {
-	getNodeURL := fmt.Sprintf("https://cloud.docker.com/api/infra/v1/node/?state=%s", state)
+	namespacePath := ""
+	if t.config.DockerCloudNamespace != "" {
+		namespacePath = t.config.DockerCloudNamespace + "/"
+	}
+	getNodeURL := fmt.Sprintf("https://cloud.docker.com/api/infra/v1/%snode/?state=%s", namespacePath, state)
 	req, err := http.NewRequest("GET", getNodeURL, nil)
 	if err != nil {
 		return nil, err

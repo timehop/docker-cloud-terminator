@@ -30,7 +30,6 @@ The AWS credentials you configure the service with will need to have s3 write ac
       "Effect": "Allow",
       "Action": [
         "ec2:DescribeInstances",
-        "ec2:DescribeTags",
         "ec2:TerminateInstances"
       ],
       "Resource": "*"

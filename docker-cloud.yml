@@ -1,6 +1,7 @@
 docker-cloud-terminator:
   image: 'timehop/docker-cloud-terminator:latest'
   restart: always
+  autoredeploy: true
   roles:
     - global
   # Run this service across two distinct nodes for HA
@@ -12,3 +13,4 @@ docker-cloud-terminator:
     - AWS_SECRET_ACCESS_KEY=<*******>
     - AWS_REGION=us-east-1
     - POLLING_INTERVAL=5s
+    - DOCKERCLOUD_NAMESPACE=

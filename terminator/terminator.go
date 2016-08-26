@@ -9,21 +9,23 @@ import (
 )
 
 type Config struct {
-	PollingInterval    time.Duration
-	DockerCloudAuth    string
-	AWSAccessKeyID     string
-	AWSSecretAccessKey string
-	AWSRegion          string
+	PollingInterval      time.Duration
+	DockerCloudAuth      string
+	DockerCloudNamespace string
+	AWSAccessKeyID       string
+	AWSSecretAccessKey   string
+	AWSRegion            string
 }
 
 func ConfigFromEnv() *Config {
 	pollingInterval, _ := time.ParseDuration(os.Getenv("POLLING_INTERVAL"))
 	return &Config{
-		PollingInterval:    pollingInterval,
-		DockerCloudAuth:    os.Getenv("DOCKERCLOUD_AUTH"),
-		AWSAccessKeyID:     os.Getenv("AWS_ACCESS_KEY_ID"),
-		AWSSecretAccessKey: os.Getenv("AWS_SECRET_ACCESS_KEY"),
-		AWSRegion:          os.Getenv("AWS_REGION"),
+		PollingInterval:      pollingInterval,
+		DockerCloudAuth:      os.Getenv("DOCKERCLOUD_AUTH"),
+		DockerCloudNamespace: os.Getenv("DOCKERCLOUD_NAMESPACE"),
+		AWSAccessKeyID:       os.Getenv("AWS_ACCESS_KEY_ID"),
+		AWSSecretAccessKey:   os.Getenv("AWS_SECRET_ACCESS_KEY"),
+		AWSRegion:            os.Getenv("AWS_REGION"),
 	}
 }
 

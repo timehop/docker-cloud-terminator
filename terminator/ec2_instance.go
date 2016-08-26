@@ -51,6 +51,14 @@ func (t *Terminator) monitorTerminatedEC2Instances() {
 				},
 			},
 		}
+		if t.config.DockerCloudNamespace != "" {
+			params.Filters = append(params.Filters, &ec2.Filter{
+				Name: aws.String("tag:Docker-Cloud-Namespace"),
+				Values: []*string{
+					aws.String(t.config.DockerCloudNamespace),
+				},
+			})
+		}
 		resp, err := svc.DescribeInstances(params)
 		if err != nil {
 			logger("ERROR", args{"error": err})
@@ -85,7 +93,7 @@ func (t *Terminator) terminateEC2Instance(uuid string) {
 
 	var instanceIDs []*string
 	{ // Brackets just for scoping vars
-		params := &ec2.DescribeTagsInput{
+		params := &ec2.DescribeInstancesInput{
 			Filters: []*ec2.Filter{
 				{
 					Name: aws.String("tag:Docker-Cloud-UUID"),
@@ -95,13 +103,23 @@ func (t *Terminator) terminateEC2Instance(uuid string) {
 				},
 			},
 		}
-		resp, err := svc.DescribeTags(params)
+		if t.config.DockerCloudNamespace != "" {
+			params.Filters = append(params.Filters, &ec2.Filter{
+				Name: aws.String("tag:Docker-Cloud-Namespace"),
+				Values: []*string{
+					aws.String(t.config.DockerCloudNamespace),
+				},
+			})
+		}
+		resp, err := svc.DescribeInstances(params)
 		if err != nil {
 			logger("ERROR", args{"uuid": uuid, "error": err})
 			return
 		}
-		for _, tag := range resp.Tags {
-			instanceIDs = append(instanceIDs, tag.ResourceId)
+		for _, reservation := range resp.Reservations {
+			for _, instance := range reservation.Instances {
+				instanceIDs = append(instanceIDs, instance.InstanceId)
+			}
 		}
 	}
 

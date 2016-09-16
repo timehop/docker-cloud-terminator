@@ -12,7 +12,9 @@ The "Deploy to Cloud" button above may be used to quickly get up and running. Re
 
 ## Prerequisites
 
-This service expects EC2 instances to be tagged with `Docker-Cloud-UUID`. To deploy BYOH nodes with this tag, we use [docker-cloud-startup](https://github.com/timehop/docker-cloud-startup).
+This service expects EC2 instances to be tagged with `UUID`. To deploy BYOH nodes with this tag, we use [docker-cloud-startup](https://github.com/timehop/docker-cloud-startup).
+
+Note: Docker tags c5a1ec7 and prior search for tags of `Docker-Cloud-UUID`.
 
 ## Why
 

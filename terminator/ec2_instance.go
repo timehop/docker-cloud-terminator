@@ -42,7 +42,7 @@ func (t *Terminator) monitorTerminatedEC2Instances() {
 		params := &ec2.DescribeInstancesInput{
 			Filters: []*ec2.Filter{
 				{
-					Name:   aws.String("tag:Docker-Cloud-UUID"),
+					Name:   aws.String("tag:UUID"),
 					Values: []*string{aws.String("*")},
 				},
 				{
@@ -53,7 +53,7 @@ func (t *Terminator) monitorTerminatedEC2Instances() {
 		}
 		if t.config.DockerCloudNamespace != "" {
 			params.Filters = append(params.Filters, &ec2.Filter{
-				Name: aws.String("tag:Docker-Cloud-Namespace"),
+				Name: aws.String("tag:Docker ID username"),
 				Values: []*string{
 					aws.String(t.config.DockerCloudNamespace),
 				},
@@ -67,7 +67,7 @@ func (t *Terminator) monitorTerminatedEC2Instances() {
 		for _, reservation := range resp.Reservations {
 			for _, instance := range reservation.Instances {
 				for _, tag := range instance.Tags {
-					if *tag.Key == "Docker-Cloud-UUID" {
+					if *tag.Key == "UUID" {
 						uuid := *tag.Value
 						t.terminateDockerCloudNode(uuid)
 					}
@@ -96,7 +96,7 @@ func (t *Terminator) terminateEC2Instance(uuid string) {
 		params := &ec2.DescribeInstancesInput{
 			Filters: []*ec2.Filter{
 				{
-					Name: aws.String("tag:Docker-Cloud-UUID"),
+					Name: aws.String("tag:UUID"),
 					Values: []*string{
 						aws.String(uuid),
 					},
@@ -105,7 +105,7 @@ func (t *Terminator) terminateEC2Instance(uuid string) {
 		}
 		if t.config.DockerCloudNamespace != "" {
 			params.Filters = append(params.Filters, &ec2.Filter{
-				Name: aws.String("tag:Docker-Cloud-Namespace"),
+				Name: aws.String("tag:Docker ID username"),
 				Values: []*string{
 					aws.String(t.config.DockerCloudNamespace),
 				},
